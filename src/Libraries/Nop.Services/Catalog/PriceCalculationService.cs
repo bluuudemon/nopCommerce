@@ -616,6 +616,10 @@ public partial class PriceCalculationService : IPriceCalculationService
     /// <returns>Rounded value</returns>
     public virtual decimal Round(decimal value, RoundingType roundingType)
     {
+        //negative amounts are rounded by magnitude; "Up" means away from zero (nopSolutions/nopCommerce#8424)
+        if (value < 0)
+            return -Round(-value, roundingType);
+
         //default round (Rounding001)
         var rez = Math.Round(value, 2);
         var fractionPart = (rez - Math.Truncate(rez)) * 10;
