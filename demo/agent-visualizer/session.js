@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var COLORS = ["#9dccff", "#f2c56a", "#7ee0c3", "#f3b4d4"];
+  var COLORS = ["#9fbbe0", "#e4c27a", "#9fc9a2", "#c0a8dd"];
   var SIM_MS = 15000;
   var mode = "recorded";
   var health = { cursor: false, github: false };
