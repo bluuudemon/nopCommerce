@@ -1,0 +1,64 @@
+{
+  "repo": "https://github.com/bluuudemon/nopCommerce",
+  "owner": "bluuudemon",
+  "name": "nopCommerce",
+  "baseBranch": "develop",
+  "protectedPullRequests": [
+    1,
+    2
+  ],
+  "demoLabel": "demo-run",
+  "branchPrefix": "demo-run/",
+  "roundFile": "src/Libraries/Nop.Services/Catalog/PriceCalculationService.cs",
+  "guardLine": "if (value < 0) return -Round(-value, roundingType);",
+  "alert": {
+    "example": true,
+    "title": "Customer reports discount displayed as a charge",
+    "detail": "Example alert for the demo, not a recorded customer ticket. A negative discount can round toward zero and display as a charge.",
+    "filePath": "src/Libraries/Nop.Services/Catalog/PriceCalculationService.cs"
+  },
+  "prTitle": "Fix cash rounding of negative amounts in PriceCalculationService.Round (upstream #8424)",
+  "prBody": "## What\nPriceCalculationService.Round() assumed positive values. Under cash rounding, negative lines (discounts, gift cards, reward points) rounded toward zero.\n\nFixes upstream #8424 (https://github.com/nopSolutions/nopCommerce/issues/8424).\n\nThis pull request targets the demo incident branch, not develop.\n\n## Change\n- Round is sign-symmetric (Round(-x) == -Round(x)). No change for values >= 0.\n- Negative CanRound cases.\n- PayPal Commerce reconciliation tests. The PayPal totals-must-match check stays strict.\n\n| Value | Type | Before | After |\n|---|---|---|---|\n| -12.80 | Rounding05 | -12.00 | -13.00 |\n| -12.34 | Rounding005Up | -12.25 | -12.35 |\n| -12.36 | Rounding01Up | -12.30 | -12.40 |\n| -12.70 | Rounding1 | -12 | -13 |\n| -12.01 | Rounding1Up | -12 | -13 |\n\n## Test plan\n- [ ] New negative CanRound cases fail on the incident branch and pass on this branch\n- [ ] Existing positive CanRound cases unchanged\n- [ ] Catalog and orders tests green\n- [ ] PayPal Commerce reconciliation tests green",
+  "followUp": "Merge origin/{{branch2}} and origin/{{branch3}} into {{branch1}}. Resolve conflicts keeping all tests. Run:\ndotnet test src/Tests/Nop.Tests --filter \"FullyQualifiedName~Nop.Tests.Nop.Services.Tests.Catalog|FullyQualifiedName~Nop.Tests.Nop.Services.Tests.Orders\"\nplus the PayPal Commerce tests. All must pass.\n\nThen open ONE pull request.\n- Head: {{branch1}}\n- Base: {{startingRef}}\n- Do not open the pull request into develop.\nTitle:\n{{prTitle}}\n\nBody:\n{{prBody}}\n\nReport the pull request URL. Do not add labels; the demo tool adds the demo-run label after it verifies the base branch.",
+  "agents": [
+    {
+      "key": "agent1",
+      "number": "1",
+      "title": "#8424 Agent 1 · Fix negative cash rounding",
+      "role": "Fix negative cash rounding",
+      "readOnly": false,
+      "opensPullRequest": true,
+      "branchTemplate": "{{prefix}}fix/8424-negative-cash-rounding",
+      "prompt": "Repo: bluuudemon/nopCommerce, base: {{startingRef}}. Create branch {{branch}}.\n\nBug (upstream nopSolutions/nopCommerce#8424): PriceCalculationService.Round(decimal, RoundingType) in\nsrc/Libraries/Nop.Services/Catalog/PriceCalculationService.cs assumes value >= 0. For negative inputs\nunder cash rounding types, the fraction part is negative and it rounds toward zero:\nRound(-12.80, Rounding05) = -12.00 (expected -13.00); Round(-12.34, Rounding005Up) = -12.25 (expected -12.35);\nRound(-12.36, Rounding01Up) = -12.30 (expected -12.40); Round(-12.70, Rounding1) = -12 (expected -13);\nRound(-12.01, Rounding1Up) = -12 (expected -13).\n\nDo this:\n1. Make Round sign-symmetric with the smallest possible change, e.g. at the top of the method:\n   if (value < 0) return -Round(-value, roundingType);\n   Rounding semantics are by magnitude (\"Up\" = away from zero), so Round(-x) must equal -Round(x) for every RoundingType.\n2. Do NOT change any result for value >= 0. Do NOT touch RoundPriceAsync's signature, IPriceCalculationService,\n   or anything in src/Plugins/Nop.Plugin.Payments.PayPalCommerce. Do not use double/float anywhere.\n3. Add a short comment referencing nopSolutions/nopCommerce#8424.\n4. Run: dotnet test src/Tests/Nop.Tests --filter \"FullyQualifiedName~Nop.Tests.Nop.Services.Tests.Catalog|FullyQualifiedName~Nop.Tests.Nop.Services.Tests.Orders\"\n   All existing tests must stay green.\n5. Commit \"Fix cash rounding for negative amounts in PriceCalculationService.Round (#8424)\" and push.\n   Do NOT open a PR yet; wait for the consolidation instruction.\nReport: the diff, test counts before/after, and a before/after table for the 5 values above."
+    },
+    {
+      "key": "agent2",
+      "number": "2",
+      "title": "#8424 Agent 2 · Negative CanRound tests",
+      "role": "Negative CanRound tests",
+      "readOnly": false,
+      "gatesFollowUp": true,
+      "branchTemplate": "{{prefix}}test/8424-negative-canround",
+      "prompt": "Repo: bluuudemon/nopCommerce, base: {{startingRef}}. Create branch {{branch}}. Tests only; do not change\nany file outside src/Tests.\n\nFile: src/Tests/Nop.Tests/Nop.Services.Tests/Catalog/PriceCalculationServiceTests.cs, test CanRound.\nIt has 36 [TestCase] rows, every one positive. For each existing row (value, expected, type), add the mirror\nrow (-value, -expected, type) directly below its positive group, keeping the file's formatting.\nAlso add the 5 rows from upstream #8424:\n  (-12.80, -13.00, Rounding05), (-12.34, -12.35, Rounding005Up), (-12.36, -12.40, Rounding01Up),\n  (-12.70, -13.00, Rounding1), (-12.01, -13.00, Rounding1Up)   (skip any that duplicate a mirror row).\nDo not change existing rows or the test body.\n\nRun: dotnet test src/Tests/Nop.Tests --filter \"FullyQualifiedName~PriceCalculationServiceTests.CanRound\"\nOn this incident branch the cash-rounding negative rows are expected to FAIL. That is the point. Report the exact list of\nfailing rows with actual vs expected (this is the demo's red test). Commit \"Add negative-value CanRound cases (#8424)\"\nand push. No PR."
+    },
+    {
+      "key": "agent3",
+      "number": "3",
+      "title": "#8424 Agent 3 · PayPal reconciliation tests",
+      "role": "PayPal reconciliation tests",
+      "readOnly": false,
+      "gatesFollowUp": true,
+      "branchTemplate": "{{prefix}}test/8424-paypal-reconciliation",
+      "prompt": "Repo: bluuudemon/nopCommerce, base: {{startingRef}}. Create branch {{branch}}.\n\nContext: src/Plugins/Nop.Plugin.Payments.PayPalCommerce/Services/PayPalCommerceServiceManager.cs, method\nPlaceOrderAsync, block \"//totals must match\":\n  var difference = Math.Abs(ConvertMoney(unit.Amount) - Math.Round(cartTotal ?? decimal.Zero, 2));\n  if (difference > decimal.Zero) throw new NopException($\"Shopping cart total and approved order amount differ by {difference}\");\nThe approved amount comes from PrepareOrderMoneyAsync (PayPal breakdown, 2 decimals, with an adjustment item).\nThe cart total comes from OrderTotalCalculationService.GetShoppingCartTotalAsync. This plugin has zero tests.\n\nGoal: the first regression test that proves \"approved PayPal amount == cart total, to the cent\" for carts that\ninclude a negative line (order-subtotal discount, gift card, reward points) under each cash RoundingType.\n\nConstraints:\n- This exact-match check is a fraud guard. Do NOT relax it, add tolerances, or change its behavior.\n- If you need a seam, make the smallest one: e.g. extract the comparison into\n  internal static decimal GetApprovedAmountDifference(Money approvedAmount, decimal? cartTotal)\n  with identical logic, plus InternalsVisibleTo for the test assembly. Explain the seam in your report.\n- Nop.Tests (src/Tests/Nop.Tests/Nop.Tests.csproj) references only Nop.Web, not plugins. Prefer a new NUnit project\n  src/Tests/Nop.Plugin.Payments.PayPalCommerce.Tests/ that references Nop.Tests and the plugin csproj, same\n  package versions as Nop.Tests (NUnit, Moq, AwesomeAssertions). Add it to src/NopCommerce.sln under the\n  \"Tests\" folder so CI's `dotnet test src` runs it. The plugin csproj uses $(SolutionDir) in OutputPath, so build\n  via the solution. If a separate project is not workable, put the tests under\n  src/Tests/Nop.Tests/Nop.Plugin.Tests/Payments/PayPalCommerce/ and add the plugin ProjectReference to Nop.Tests.csproj.\n- Use decimal only.\n\nTests to write (table-driven over RoundingType):\n1. Reconciliation helper: equal amounts -> 0; off by 0.01 -> 0.01 (guard still throws).\n2. Regression: a cart whose total includes a negative line in a cash-rounding currency; build the approved amount the\n   way PrepareOrderMoneyAsync does and assert difference == 0. Must FAIL on the incident branch if the negative-rounding bug\n   reaches this path, and PASS once Round() is sign-symmetric. If you cannot get it to fail on the incident branch, say so\n   clearly and explain why.\nRun the new tests, report pass/fail on the incident branch. Commit \"Add PayPal Commerce total reconciliation regression tests (#8424)\"\nand push. No PR."
+    },
+    {
+      "key": "agent4",
+      "number": "4",
+      "title": "#8424 Agent 4 · Blast-radius audit (read-only)",
+      "role": "Blast-radius audit (read-only)",
+      "readOnly": true,
+      "branchTemplate": null,
+      "prompt": "Repo: bluuudemon/nopCommerce, branch {{startingRef}}. READ-ONLY: do not create branches, commits, issues, or PRs.\n\nAudit every place money amounts are compared or rounded where a one-cent drift or a negative value could break\ncheckout, refunds, or captures. Scope:\n- src/Plugins/Nop.Plugin.Payments.*  (PayPalCommerce, CheckMoneyOrder)\n- src/Libraries/Nop.Services/Payments, src/Libraries/Nop.Services/Orders, src/Libraries/Nop.Services/Tax\n- src/Plugins/Nop.Plugin.Tax.*, src/Plugins/Nop.Plugin.Misc.Zettle, any other plugin that sends amounts to a provider\nLook for:\n- exact equality / inequality on amounts (==, !=, \"difference > decimal.Zero\", CompareTo on totals)\n- Math.Round(x, 2) on one side of a comparison but not the other\n- double/float used for money; decimal.Parse/TryParse without CultureInfo.InvariantCulture\n- callers that pass negative amounts into PriceCalculationService.Round / RoundPriceAsync / PriceFormatter\n  (start with src/Libraries/Nop.Services/Catalog/PriceFormatter.cs,\n  src/Presentation/Nop.Web/Factories/ShoppingCartModelFactory.cs, src/Presentation/Nop.Web/Factories/OrderModelFactory.cs,\n  src/Presentation/Nop.Web/Areas/Admin/Factories/OrderModelFactory.cs, src/Libraries/Nop.Services/Messages/MessageTokenProvider.cs)\nOutput a markdown report:\n| # | File:line (link to develop) | Pattern | Risk (High/Med/Low) | User-visible surface | Fixed by #8424 fix? | Recommendation |\nEnd with: top 3 follow-ups, and anything you were unsure about."
+    }
+  ]
+}

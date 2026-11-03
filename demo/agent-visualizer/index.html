@@ -44,6 +44,10 @@
       min-height: 100vh;
       overflow: hidden;
     }
+    body.mode-session.view-exec {
+      height: auto;
+      overflow: auto;
+    }
     body.view-dev { overflow: auto; }
 
     a { color: var(--link); text-underline-offset: 3px; }
@@ -176,6 +180,57 @@
       max-width: 11rem;
       line-height: 1.2;
     }
+    .live-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 0 0 8px;
+    }
+    .live-bar button, .elapsed {
+      font: inherit;
+      font-weight: 700;
+    }
+    .live-bar button {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .live-bar button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .elapsed {
+      margin: 0;
+      min-width: 5.5rem;
+      font-variant-numeric: tabular-nums;
+      font-size: 20px;
+    }
+    .mode-note { margin: 0; color: var(--muted); font-size: 14px; }
+    .mode-banner, .alert-card {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--gold);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 8px 12px;
+    }
+    .mode-banner { margin: 0; color: var(--text); font-weight: 700; }
+    .example-badge {
+      display: inline-block;
+      margin: 0 0 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--gold);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .alert-card h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.02em; }
+    .alert-card p { margin: 0 0 4px; }
+    #session-exec, #session-dev { display: flex; flex-direction: column; gap: 8px; }
+    #session-dev { display: block; }
 
     #exec-heading {
       margin: 0;
@@ -535,6 +590,11 @@
     <header class="top">
       <p class="kicker" id="kicker"></p>
       <div class="controls">
+        <div class="seg" role="group" aria-label="Demo mode">
+          <button type="button" id="mode-recorded" aria-pressed="true">Recorded</button>
+          <button type="button" id="mode-live" aria-pressed="false">Live</button>
+          <button type="button" id="mode-simulated" aria-pressed="false">Simulated</button>
+        </div>
         <div class="seg" role="group" aria-label="Choose a view">
           <button type="button" id="show-exec" aria-pressed="true">Exec view</button>
           <button type="button" id="show-dev" aria-pressed="false">Developer view</button>
@@ -546,8 +606,16 @@
       </div>
     </header>
     <p id="live" class="visually-hidden" aria-live="polite"></p>
+    <div class="live-bar" id="live-bar" hidden>
+      <button type="button" id="btn-reset">Reset demo</button>
+      <button type="button" id="btn-incident">Introduce incident</button>
+      <button type="button" id="btn-remediate">Remediate</button>
+      <p class="elapsed" id="elapsed">00:00</p>
+      <p class="mode-note" id="mode-note"></p>
+    </div>
     <div id="content">
       <section id="exec-view" aria-labelledby="exec-heading">
+        <div id="recorded-exec">
         <div>
           <h1 id="exec-heading" tabindex="-1">One alert. Four agents. One reviewed PR.</h1>
           <p class="note" id="exec-note"></p>
@@ -573,13 +641,47 @@
             <p class="quote" id="pr-quote"></p>
           </section>
         </div>
+        </div>
+        <div id="session-exec" hidden>
+          <p class="mode-banner" id="session-banner"></p>
+          <article class="alert-card" id="alert-card" hidden>
+            <p class="example-badge">EXAMPLE</p>
+            <h2 id="alert-title"></h2>
+            <p id="alert-detail"></p>
+            <p><a id="alert-file" target="_blank" rel="noopener noreferrer"></a></p>
+            <p id="alert-branch"></p>
+          </article>
+          <div class="lanes" id="session-lanes"></div>
+          <div class="bottom">
+            <section class="panel twist" aria-labelledby="session-status-heading">
+              <p class="eyebrow">This run</p>
+              <h2 id="session-status-heading">Waiting to start</h2>
+              <p id="session-status"></p>
+            </section>
+            <section class="panel outcome" aria-labelledby="session-outcome-heading">
+              <div class="outcome-top">
+                <h2 class="eyebrow" id="session-outcome-heading">Alert to pull request</h2>
+                <a class="pr-link" id="session-pr" target="_blank" rel="noopener noreferrer" hidden>Pull request</a>
+              </div>
+              <p class="stat" id="session-stat">Not opened yet</p>
+              <p class="quote" id="session-quote"></p>
+            </section>
+          </div>
+        </div>
       </section>
       <section id="dev-view" hidden aria-labelledby="dev-heading">
+        <div id="recorded-dev">
         <h1 id="dev-heading" tabindex="-1">Call log</h1>
         <p class="dev-note" id="dev-note"></p>
         <p class="dev-order" id="dev-order"></p>
         <div class="calls" id="calls"></div>
         <p class="source-line" id="data-source"></p>
+        </div>
+        <div id="session-dev" hidden>
+          <h1 id="session-dev-heading" tabindex="-1">Call log</h1>
+          <p class="dev-note" id="session-dev-note"></p>
+          <div class="calls" id="session-calls"></div>
+        </div>
       </section>
     </div>
   </div>
@@ -968,8 +1070,6 @@
             "upstream #" + issue[1]
           ));
         }
-        var dated = (data.note || "").match(/[A-Z][a-z]{2,8}\s+\d{1,2},\s+\d{4}/);
-        if (dated) els.kicker.appendChild(document.createTextNode(" · " + dated[0]));
       }
 
       function renderAxis(state) {
@@ -1448,5 +1548,6 @@
       });
     }());
   </script>
+  <script src="session.js"></script>
 </body>
 </html>
