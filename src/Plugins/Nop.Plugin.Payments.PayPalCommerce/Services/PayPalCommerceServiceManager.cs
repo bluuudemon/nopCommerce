@@ -255,7 +255,7 @@ public class PayPalCommerceServiceManager
     /// <param name="value">Amount value</param>
     /// <param name="currencyCode">Currency code</param>
     /// <returns>Money object</returns>
-    private static Money PrepareMoney(decimal value, string currencyCode)
+    internal static Money PrepareMoney(decimal value, string currencyCode)
     {
         var format = PayPalCommerceDefaults.CurrenciesWithoutDecimals.Contains(currencyCode.ToUpper()) ? "0" : "0.00";
         return new()
@@ -270,9 +270,21 @@ public class PayPalCommerceServiceManager
     /// </summary>
     /// <param name="value">Amount value</param>
     /// <returns>Decimal value</returns>
-    private static decimal ConvertMoney(Money amount)
+    internal static decimal ConvertMoney(Money amount)
     {
         return decimal.TryParse(amount?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var value) ? value : decimal.Zero;
+    }
+
+    /// <summary>
+    /// Absolute difference between an approved PayPal amount and the shopping cart total.
+    /// PlaceOrderAsync rejects the order when this is greater than zero. The check has no tolerance.
+    /// </summary>
+    /// <param name="approvedAmount">Approved PayPal order amount</param>
+    /// <param name="cartTotal">Cart total from GetShoppingCartTotalAsync; null is treated as zero</param>
+    /// <returns>Absolute difference</returns>
+    internal static decimal GetApprovedAmountDifference(Money approvedAmount, decimal? cartTotal)
+    {
+        return Math.Abs(ConvertMoney(approvedAmount) - Math.Round(cartTotal ?? decimal.Zero, 2));
     }
 
     /// <summary>
@@ -2145,7 +2157,7 @@ public class PayPalCommerceServiceManager
             //totals must match
             var (cartTotal, _, _, _, _, _) = await _orderTotalCalculationService
                 .GetShoppingCartTotalAsync(cart, usePaymentMethodAdditionalFee: false);
-            var difference = Math.Abs(ConvertMoney(unit.Amount) - Math.Round(cartTotal ?? decimal.Zero, 2));
+            var difference = GetApprovedAmountDifference(unit.Amount, cartTotal);
             if (difference > decimal.Zero)
                 throw new NopException($"Shopping cart total and approved order amount differ by {difference}");
 

@@ -93,6 +93,10 @@
     <ClearPluginAssemblies Include="$(SolutionDir)\Build\ClearPluginAssemblies.proj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nop.Plugin.Payments.PayPalCommerce.Tests" />
+  </ItemGroup>
+
   <!-- This target execute after "Build" target -->
   <Target Name="NopTarget" AfterTargets="Build">
     <!-- Delete unnecessary libraries from plugins path -->
