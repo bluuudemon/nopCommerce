@@ -8,8 +8,10 @@ import { createGitHubClient } from "./github-api.mjs";
 import { createCursorClient } from "./cursor-api.mjs";
 import { createOrchestrator } from "./orchestrator.mjs";
 import { resetDemo, introduceIncident } from "./actions.mjs";
+import { loadLocalEnv } from "./load-env.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+loadLocalEnv(ROOT);
 const PORT = Number(process.env.PORT || 8787);
 const config = JSON.parse(readFileSync(join(ROOT, "config", "demo.json"), "utf8"));
 const log = createLog();
@@ -19,7 +21,7 @@ let cursor;
 
 function githubClient() {
   if (!process.env.GITHUB_TOKEN) {
-    const error = new Error("GITHUB_TOKEN is not set. Export it in the shell that starts this server. Do not put it in a file.");
+    const error = new Error("GITHUB_TOKEN is not set. Export it in the shell, or add it to the gitignored .env beside this server.");
     error.status = 400;
     throw error;
   }

@@ -25,7 +25,7 @@ The layout is tuned for a 1280×800 display and a projector. Card lines in the e
 
 `node server/index.mjs` serves this folder and a JSON API. It uses Node 20+ (`node:http` and global `fetch`) and does not install packages.
 
-Do not create a `.env` file. Export the keys in the shell that starts the server, then leave that shell:
+On a cloned machine, export the keys in the shell that starts the server. That is what the process reads. If a gitignored `.env` file is already present in `demo/agent-visualizer/`, the server loads it first and does not override variables that are already exported. Do not commit that file. `.gitignore` already excludes `.env`.
 
 ```bash
 export CURSOR_API_KEY="crsr_..."    # Cursor Dashboard → Integrations
