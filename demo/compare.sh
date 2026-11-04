@@ -29,5 +29,7 @@ Side by side:
   Baseline  http://127.0.0.1:8080
   Feature   http://127.0.0.1:8081   (${REF})
   Admin     admin@yourStore.com / Demo123!
-  State     free shipping over \$75, toggle off, carts empty
+  Baseline  free shipping over \$75, bar off
+  Feature   free shipping over \$75, bar on
+  Carts     empty until you add something
 EOF

@@ -1,35 +1,76 @@
 #!/usr/bin/env bash
-# Put one running demo store into the Feature-to-Ship starting state:
-# free-shipping threshold $75, the free-shipping toggle off, any progress-bar
-# toggle off, and no carts. Restarts the site so nopCommerce reloads settings.
+# Put a running demo store into a known state and clear carts.
 #
-#   demo/prime.sh <port>
+#   demo/prime.sh 8080            # baseline: threshold $75, feature off
+#   demo/prime.sh 8081            # feature: threshold $75, bar enabled
+#   demo/prime.sh <port> baseline
+#   demo/prime.sh <port> feature
+#
+# Port 8081 defaults to feature. Every other port defaults to baseline.
+# The feature mode turns on free shipping over $75 and every progress-bar
+# toggle the golden branch reads. The baseline leaves those toggles off.
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
-PORT="${1:?usage: demo/prime.sh <port>}"
+PORT="${1:?usage: demo/prime.sh <port> [baseline|feature]}"
+MODE="${2:-}"
+if [[ -z "$MODE" ]]; then
+  if [[ "$PORT" == "8081" ]]; then
+    MODE="feature"
+  else
+    MODE="baseline"
+  fi
+fi
+case "$MODE" in
+  baseline|feature) ;;
+  *)
+    echo "Mode must be baseline or feature." >&2
+    exit 1
+    ;;
+esac
+
 STATE="$(demo_state_file "$PORT")"
 if [[ ! -f "$STATE" ]]; then
   echo "No demo state for port ${PORT}. Start it with demo/up.sh first." >&2
   exit 1
 fi
 
-echo "Priming port ${PORT}: free shipping over \$75, toggle off, carts empty."
+if [[ "$MODE" == "feature" ]]; then
+  ENABLED="True"
+  echo "Priming port ${PORT}: free shipping over \$75, progress bar on, carts empty."
+else
+  ENABLED="False"
+  echo "Priming port ${PORT}: free shipping over \$75, progress bar off, carts empty."
+fi
+
+# Setting names the golden branch may introduce. Unknown names are inserted
+# so a default of "off" in code still comes up enabled on the feature port.
+# shippingsettings.freeshippingoverxenabled is the toggle that already exists.
+FEATURE_SETTINGS=(
+  shippingsettings.freeshippingprogressbarenabled
+  shippingsettings.showfreeshippingprogressbar
+  shippingsettings.displayfreeshippingprogressbar
+  shippingsettings.freeshippingprogressenabled
+)
+
+SETTINGS_SQL=""
+for name in "${FEATURE_SETTINGS[@]}"; do
+  SETTINGS_SQL+="
+INSERT INTO \"Setting\" (\"Name\", \"Value\", \"StoreId\")
+SELECT '${name}', '${ENABLED}', 0
+WHERE NOT EXISTS (
+  SELECT 1 FROM \"Setting\" WHERE \"Name\" = '${name}' AND \"StoreId\" = 0
+);
+UPDATE \"Setting\" SET \"Value\" = '${ENABLED}' WHERE \"Name\" = '${name}';
+"
+done
+
 demo_compose "$STATE" exec -T database \
-  psql -U postgres -d nopcommerce -v ON_ERROR_STOP=1 <<'SQL'
+  psql -U postgres -d nopcommerce -v ON_ERROR_STOP=1 -v enabled="$ENABLED" <<SQL
 UPDATE "Setting"
    SET "Value" = '75'
  WHERE "Name" = 'shippingsettings.freeshippingoverxvalue';
-
-UPDATE "Setting"
-   SET "Value" = 'False'
- WHERE "Name" = 'shippingsettings.freeshippingoverxenabled';
-
-UPDATE "Setting"
-   SET "Value" = 'False'
- WHERE "Name" LIKE '%progressbar%'
-    OR "Name" LIKE '%freeshippingprogress%';
 
 INSERT INTO "Setting" ("Name", "Value", "StoreId")
 SELECT 'shippingsettings.freeshippingoverxvalue', '75', 0
@@ -38,12 +79,23 @@ WHERE NOT EXISTS (
    WHERE "Name" = 'shippingsettings.freeshippingoverxvalue' AND "StoreId" = 0
 );
 
+UPDATE "Setting"
+   SET "Value" = :'enabled'
+ WHERE "Name" = 'shippingsettings.freeshippingoverxenabled';
+
 INSERT INTO "Setting" ("Name", "Value", "StoreId")
-SELECT 'shippingsettings.freeshippingoverxenabled', 'False', 0
+SELECT 'shippingsettings.freeshippingoverxenabled', :'enabled', 0
 WHERE NOT EXISTS (
   SELECT 1 FROM "Setting"
    WHERE "Name" = 'shippingsettings.freeshippingoverxenabled' AND "StoreId" = 0
 );
+
+UPDATE "Setting"
+   SET "Value" = :'enabled'
+ WHERE "Name" LIKE '%progressbar%'
+    OR "Name" LIKE '%freeshippingprogress%';
+
+${SETTINGS_SQL}
 
 DELETE FROM "ShoppingCartItem";
 SQL
@@ -54,4 +106,4 @@ if ! demo_wait_http "$BASE" 40; then
   echo "Store on port ${PORT} did not come back after restart." >&2
   exit 1
 fi
-echo "Port ${PORT} is in the demo starting state."
+echo "Port ${PORT} is primed (${MODE})."

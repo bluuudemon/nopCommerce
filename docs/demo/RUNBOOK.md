@@ -69,14 +69,14 @@ Open these before the audience is looking, after `demo/prebuild.sh` and `demo/co
 
 | Tab | URL | What it is |
 | --- | --- | --- |
-| 1 | http://127.0.0.1:8080 | Baseline. Published storefront. No free-shipping bar. |
-| 2 | http://127.0.0.1:8081 | Feature. The golden branch, already built. The bar is in the code. The toggle is off until you turn it on. |
+| 1 | http://127.0.0.1:8080 | Baseline. No free-shipping bar. |
+| 2 | http://127.0.0.1:8081 | Feature already shipped. Free shipping over $75 is on, and the progress bar is visible once the cart has a normal product in it. |
 
-Swap tabs. Do not wait on a live coding run. The second tab is the pre-built golden version. A parallel bot run can still be going; it is not what the audience is watching.
+Swap tabs. Do not wait on a live coding run. Tab 2 is the pre-built golden version with the bar already switched on. A parallel bot run can still be going; it is not what the audience is watching.
 
 `DEMO_IMAGE=...` skips the build and runs the image you name. The feature image tag is `nopdemo:sha-<commit>` and is reused until that commit changes.
 
-Every `up.sh` ends in `prime.sh`: free shipping over **$75**, the free-shipping toggle **off**, any progress-bar setting **off**, and **no carts**. Turning the toggle on in admin is the only step left for the hero demo.
+Every `up.sh` ends in `prime.sh`. Both ports get free shipping over **$75** and **empty carts**. Port 8080 leaves the free-shipping toggle and any progress-bar setting **off**. Port 8081 turns those **on**, so the bar is already on the feature store. `demo/prime.sh 8080` and `demo/prime.sh 8081` do the same thing again.
 
 The first run of a ref checks out a worktree under `.demo-worktrees/` and runs `docker build -f Dockerfile`. Later runs of the same commit reuse the image. `reset.sh` deletes the database volume, installs again, and primes.
 
@@ -90,12 +90,10 @@ When it is ready:
 
 The hero feature is the free-shipping progress bar (`docs/demo/FEATURE_SHORTLIST.md`). It is not in this baseline.
 
-1. `demo/prebuild.sh` then `demo/compare.sh`, so tab 1 is port 8080 and tab 2 is port 8081. Both already have the threshold at $75 and the toggle off.
-2. On the feature admin, enable Free shipping over X. Leave the value at 75.
-3. Add Nike Floral Roshe Customized Running Shoes (price 40, not marked free shipping). The bar should be partial.
-4. Raise the quantity. The bar completes.
-5. Open the header cart. The same bar is in the mini-cart.
-6. Repeat the add on baseline. Totals only, no bar.
+1. `demo/prebuild.sh` then `demo/compare.sh`, so tab 1 is port 8080 and tab 2 is port 8081. Tab 2 already has free shipping over $75 and the progress bar switched on.
+2. Add Nike Floral Roshe Customized Running Shoes (price 40, not marked free shipping) on both tabs. The feature cart shows a partial bar. The baseline cart does not.
+3. Raise the quantity on the feature tab. The bar completes.
+4. Open the header cart on the feature tab. The same bar is in the mini-cart.
 
 Do not demo the bar with Build your own computer or Apple MacBook Pro. Those sample products are already marked free shipping, so the bar would look finished on the first add.
 

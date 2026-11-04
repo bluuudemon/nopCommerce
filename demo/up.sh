@@ -96,6 +96,10 @@ if ! demo_storefront_ready "$BASE"; then
   fi
 fi
 
-"$DEMO_DIR/prime.sh" "$PORT"
+if [[ "$LABEL" == "feature" || "$PORT" == "8081" ]]; then
+  "$DEMO_DIR/prime.sh" "$PORT" feature
+else
+  "$DEMO_DIR/prime.sh" "$PORT" baseline
+fi
 echo "Storefront is up: ${BASE}"
 demo_print_footer "$BASE"
