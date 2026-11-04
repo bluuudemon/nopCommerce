@@ -1,0 +1,47 @@
+@model FreeShippingProgressModel
+@{
+    var isFlyout = string.Equals(Model.Variant, "flyout", StringComparison.OrdinalIgnoreCase);
+    var css = isFlyout
+        ? "free-shipping-progress free-shipping-progress--flyout"
+        : $"free-shipping-progress free-shipping-progress--card free-shipping-progress--{Model.Variant}";
+    if (Model.IsQualified)
+        css += " free-shipping-progress--qualified";
+
+    var progress = Model.ProgressPercent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    var valueNow = Model.ProgressValue.ToString("0.00", CultureInfo.InvariantCulture);
+    var valueMax = Model.ThresholdValue.ToString("0.00", CultureInfo.InvariantCulture);
+}
+<div class="@css" data-free-shipping-progress>
+    @if (!isFlyout)
+    {
+        <div class="free-shipping-progress__icon" aria-hidden="true">
+            @if (Model.IsQualified)
+            {
+                <svg viewBox="0 0 24 24" width="28" height="28" focusable="false">
+                    <circle cx="12" cy="12" r="11" fill="#4caf50"></circle>
+                    <path d="M7 12.5l3.2 3.2L17.5 8.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            }
+            else
+            {
+                <svg viewBox="0 0 24 24" width="28" height="28" focusable="false">
+                    <path fill="#888" d="M3 7h11v8H3V7zm11 1.5h3.2L20 12v3h-6V8.5zM6.5 18a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5zm9 0a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5z"></path>
+                </svg>
+            }
+        </div>
+    }
+    <div class="free-shipping-progress__body">
+        <p class="free-shipping-progress__message" aria-live="polite">@Model.Message</p>
+        @if (Model.IsQualified && !isFlyout && !string.IsNullOrEmpty(Model.Hint))
+        {
+            <p class="free-shipping-progress__hint">@Model.Hint</p>
+        }
+        <div class="free-shipping-progress__track" role="progressbar" aria-valuemin="0" aria-valuemax="@valueMax" aria-valuenow="@valueNow" aria-valuetext="@Model.Message">
+            <div class="free-shipping-progress__fill" style="width: @progress" data-progress="@progress"></div>
+        </div>
+        @if (!isFlyout && !Model.IsQualified && !string.IsNullOrEmpty(Model.Caption))
+        {
+            <p class="free-shipping-progress__caption">@Model.Caption</p>
+        }
+    </div>
+</div>

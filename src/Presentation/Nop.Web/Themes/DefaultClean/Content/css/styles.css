@@ -4520,6 +4520,128 @@ label, label + * {
   margin: 3px;
 }
 
+.free-shipping-progress--card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f6f6f6;
+  padding: 14px 16px;
+  color: var(--dark-gray-color);
+}
+
+.free-shipping-progress--card-mobile {
+  display: flex;
+}
+
+.free-shipping-progress--card-desktop {
+  display: none;
+}
+
+.free-shipping-progress--qualified.free-shipping-progress--card {
+  border-color: #c8e6c9;
+  background-color: #eef8ef;
+}
+
+.free-shipping-progress__icon {
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.free-shipping-progress__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.free-shipping-progress__message {
+  margin: 0 0 8px;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.free-shipping-progress--qualified .free-shipping-progress__message {
+  color: #2e7d32;
+}
+
+.free-shipping-progress__hint {
+  margin: -4px 0 8px;
+  color: #666;
+  font-size: 13px;
+}
+
+.free-shipping-progress__track {
+  height: 8px;
+  border-radius: 8px;
+  background-color: #e6e6e6;
+  overflow: hidden;
+}
+
+.free-shipping-progress__fill {
+  height: 100%;
+  width: 0;
+  border-radius: 8px;
+  background-color: #4ab2f1;
+  transition: width 300ms ease;
+}
+
+.free-shipping-progress--qualified .free-shipping-progress__fill {
+  background-color: #4caf50;
+}
+
+.free-shipping-progress__caption {
+  margin: 6px 0 0;
+  color: #4ab2f1;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.free-shipping-progress--flyout {
+  margin: 0 0 12px;
+}
+
+.free-shipping-progress--flyout .free-shipping-progress__message {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+.free-shipping-progress--flyout .free-shipping-progress__track {
+  height: 6px;
+  border-radius: 6px;
+}
+
+.free-shipping-progress--flyout .free-shipping-progress__fill {
+  border-radius: 6px;
+}
+
+@media all and (min-width: 768px) {
+  .free-shipping-progress--card-mobile {
+    display: none;
+  }
+
+  .free-shipping-progress--card-desktop {
+    display: flex;
+  }
+}
+
+@media all and (min-width: 769px) {
+  .cart-footer .free-shipping-progress--card-desktop {
+    float: right;
+    width: 45%;
+    margin: 0 2.5% 15px;
+  }
+}
+
+@media all and (min-width: 1367px) {
+  .cart-footer .free-shipping-progress--card-desktop {
+    width: 395px;
+    margin: 0 0 15px;
+  }
+}
+
 .cart-footer {
   margin: 0 0 50px;
   border-top: 1px solid #ddd;
