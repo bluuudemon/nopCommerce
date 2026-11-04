@@ -64,6 +64,11 @@ cat >"$WORK/src/Directory.Build.targets" <<'EOF'
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
+  <!-- Nop.Web ships views for runtime compilation. Precompile them in the
+       demo image so the storefront does not need the targeting packs at runtime. -->
+  <PropertyGroup>
+    <RazorCompileOnPublish>true</RazorCompileOnPublish>
+  </PropertyGroup>
   <ItemGroup Condition="$(MSBuildProjectDirectory.Contains('Tests'))">
     <PackageReference Remove="@(PackageReference)" />
     <Compile Remove="@(Compile)" />
