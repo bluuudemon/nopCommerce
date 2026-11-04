@@ -1,6 +1,6 @@
 # Feature shortlist
 
-Candidates for the Feature-to-Ship demo. Each one is visible on the public storefront, small enough for one coding-agent session, and easy to point at afterwards. Nothing here is implemented.
+Candidates for the Feature-to-Ship demo. Each one is visible on the public storefront, small enough for one coding-agent session, and easy to point at afterwards. This branch implements the free-shipping progress bar. The other candidates are not built.
 
 The storefront that matters is the default theme: product details, category grids, the cart, the header mini-cart. Admin screens are out of scope except where a single existing setting turns the feature on.
 

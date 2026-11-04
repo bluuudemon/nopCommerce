@@ -14,12 +14,20 @@ demo_load_defaults() {
   if [[ -n "${DEMO_IMAGE+x}" ]]; then
     image_was_set=1
   fi
+  local preset_threshold="${DEMO_FREE_SHIPPING_OVER_X-}"
+  local threshold_was_set=0
+  if [[ -n "${DEMO_FREE_SHIPPING_OVER_X+x}" ]]; then
+    threshold_was_set=1
+  fi
   # shellcheck disable=SC1091
   set -a
   source "$DEMO_DIR/demo.env"
   set +a
   if [[ "$image_was_set" -eq 1 ]]; then
     DEMO_IMAGE="$preset_image"
+  fi
+  if [[ "$threshold_was_set" -eq 1 ]]; then
+    DEMO_FREE_SHIPPING_OVER_X="$preset_threshold"
   fi
 }
 
@@ -61,6 +69,7 @@ DEMO_SQL_DATABASE=$DEMO_SQL_DATABASE
 DEMO_SQL_HOST=$DEMO_SQL_HOST
 DEMO_ADMIN_EMAIL=$DEMO_ADMIN_EMAIL
 DEMO_ADMIN_PASSWORD=$DEMO_ADMIN_PASSWORD
+DEMO_FREE_SHIPPING_OVER_X=${DEMO_FREE_SHIPPING_OVER_X:-75}
 EOF
   echo "$file"
 }

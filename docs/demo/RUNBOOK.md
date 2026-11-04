@@ -40,8 +40,9 @@ demo/up.sh baseline 8080
 # (same published image until you have a feature image)
 demo/up.sh feature 8081
 
-# Feature image, once a build exists
-DEMO_IMAGE=nopdemo:my-feature demo/up.sh feature 8081
+# Feature image. Build it once from this branch, then point up.sh at it.
+docker build -t nopdemo:golden-free-shipping-bar .
+DEMO_IMAGE=nopdemo:golden-free-shipping-bar demo/up.sh feature 8081
 
 # Fresh sample data, same image, same port
 demo/reset.sh 8080
@@ -57,6 +58,8 @@ demo/down.sh 8080
 
 The first run pulls images if they are missing, waits for Postgres, posts the install form with sample data, and restarts the app. Later runs see an installed storefront and return immediately. `reset.sh` deletes the database volume and installs again, so the catalog is the same every time.
 
+After the storefront is up, `up.sh` (and therefore `reset.sh`) sets **Free shipping over X** to `$75` (`DEMO_FREE_SHIPPING_OVER_X` in `demo/demo.env`) and restarts the site when that value changed. One Nike Floral Roshe Customized Running Shoes ($40) then shows a partial free-shipping bar on a feature image. Set `DEMO_FREE_SHIPPING_OVER_X` before `up.sh` to use a different threshold. A fresh install is required for the progress-bar copy; an older database does not contain the new locale strings.
+
 When it is ready:
 
 - Storefront: `http://127.0.0.1:8080`
@@ -67,12 +70,12 @@ When it is ready:
 
 The hero feature is the free-shipping progress bar (`docs/demo/FEATURE_SHORTLIST.md`). It is not in this baseline.
 
-1. Baseline on port 8080, feature build on port 8081.
-2. On the feature admin, enable Free shipping over X and set 75.
-3. Add Nike Floral Roshe Customized Running Shoes (price 40, not marked free shipping). The bar should be partial.
-4. Raise the quantity. The bar completes.
-5. Open the header cart. The same bar is in the mini-cart.
-6. Repeat the add on baseline. Totals only, no bar.
+1. Baseline on port 8080 (published image), feature build on port 8081 (`DEMO_IMAGE=nopdemo:golden-free-shipping-bar`).
+2. The feature seed already enables Free shipping over X at $75. Admin → Configuration → Settings → Shipping shows the same switch if you want to turn it off.
+3. Add Nike Floral Roshe Customized Running Shoes (price 40, not marked free shipping). Pick any size. The bar should read "Add $35.00 more for free shipping".
+4. Raise the quantity to 2. The bar switches to "You've unlocked free shipping!".
+5. Hover the header cart. The same bar is in the mini-cart. On a narrow screen the cart page bar is the one to show; the default theme opens the mini-cart on hover at desktop widths.
+6. Repeat the add on baseline. Totals only, no bar. Baseline scripts from this branch also seed the $75 threshold, so shipping can drop off there too; the bar itself is only in the feature image.
 
 Do not demo the bar with Build your own computer or Apple MacBook Pro. Those sample products are already marked free shipping, so the bar would look finished on the first add.
 
@@ -80,8 +83,9 @@ Do not demo the bar with Build your own computer or Apple MacBook Pro. Those sam
 
 | Path | Role |
 | --- | --- |
-| `demo/up.sh` | Create the instance, install sample data if needed |
-| `demo/reset.sh` | Delete volumes and install again |
+| `demo/up.sh` | Create the instance, install sample data if needed, seed free shipping over $75 |
+| `demo/seed_free_shipping.sh` | Set free shipping over X on an installed demo database |
+| `demo/reset.sh` | Delete volumes and install again (re-seeds free shipping) |
 | `demo/down.sh` | Stop containers, keep data |
 | `demo/docker-compose.yml` | Web + Postgres |
 | `demo/demo.env` | Image name and demo passwords |

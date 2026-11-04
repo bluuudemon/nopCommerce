@@ -1,0 +1,19 @@
+@model FreeShippingProgressModel
+
+@if (Model.Visible)
+{
+    <div class="free-shipping-progress@(Model.Unlocked ? " free-shipping-progress--unlocked" : null)"
+         data-free-shipping-progress
+         data-remaining="@Model.RemainingAmount.ToString(CultureInfo.InvariantCulture)"
+         role="status">
+        <div class="free-shipping-progress__message">@Model.Message</div>
+        <div class="free-shipping-progress__track"
+             role="progressbar"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-valuenow="@Model.ProgressPercent"
+             aria-label="@Model.Message">
+            <span class="free-shipping-progress__bar" style="width: @(Model.ProgressPercent)%"></span>
+        </div>
+    </div>
+}

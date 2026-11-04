@@ -20746,6 +20746,12 @@
   <LocaleResource Name="ShoppingCart.Mini.ViewCart">
     <Value>Go to cart</Value>
   </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShipping.Remaining">
+    <Value>Add {0} more for free shipping</Value>
+  </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShipping.Unlocked">
+    <Value>You've unlocked free shipping!</Value>
+  </LocaleResource>
   <LocaleResource Name="ShoppingCart.MinimumAgeToPurchase">
     <Value>This product is available to customers who are {0} years of age or older</Value>
   </LocaleResource>

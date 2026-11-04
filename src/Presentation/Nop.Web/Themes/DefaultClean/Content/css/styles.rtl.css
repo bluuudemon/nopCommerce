@@ -8445,3 +8445,61 @@ a.skip:hover {
 .timer-container .phone-info {
   margin-bottom: 8px;
 }
+
+/*********** FREE SHIPPING PROGRESS ***********/
+
+.free-shipping-progress {
+  margin: 0 0 12px;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  color: var(--dark-gray-color);
+  text-align: center;
+}
+
+.free-shipping-progress__message {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.free-shipping-progress__track {
+  height: 8px;
+  background-color: #e6e6e6;
+  overflow: hidden;
+}
+
+.free-shipping-progress__bar {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  background-color: var(--accent-blue-color);
+}
+
+.free-shipping-progress--unlocked .free-shipping-progress__message {
+  color: var(--success-green-color);
+  font-weight: bold;
+}
+
+.free-shipping-progress--unlocked .free-shipping-progress__bar {
+  background-color: var(--success-green-color);
+}
+
+.mini-shopping-cart .free-shipping-progress {
+  margin: 0 0 12px;
+  padding: 8px;
+}
+
+.mini-shopping-cart .free-shipping-progress__message {
+  font-size: 12px;
+}
+
+@media all and (max-width: 1000px) {
+  .free-shipping-progress {
+    padding: 10px 12px;
+  }
+
+  .free-shipping-progress__message {
+    font-size: 13px;
+  }
+}

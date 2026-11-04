@@ -45,6 +45,7 @@
                     </div>
                 }
             </div>
+            @await Component.InvokeAsync(typeof(FreeShippingProgressViewComponent))
             <div class="totals">@T("ShoppingCart.Totals.SubTotal"): <strong>@Model.SubTotal</strong></div>
             <div class="buttons">
                 @if (Model.DisplayShoppingCartButton)
