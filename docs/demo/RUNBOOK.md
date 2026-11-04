@@ -26,6 +26,35 @@ Postgres is not published to the host. The web container reaches it at the hostn
 
 Customer accounts from the sample catalog (not admins) use password `123456`, for example `steve_gates@nopCommerce.com`.
 
+## Mac
+
+Docker Desktop, the system bash, and git. macOS has no `timeout` command. Do not set `DEMO_OFFLINE_BASE`. The feature image is a normal `docker build` of the ref. `git fetch origin <branch>` stores the tip in `FETCH_HEAD` and does not create a local branch. The scripts read that commit.
+
+From the repo root, after the feature branch is checked out:
+
+```bash
+git fetch origin
+git fetch origin demo/golden-free-shipping-bar
+demo/prebuild.sh
+demo/compare.sh
+```
+
+A new clone:
+
+```bash
+git clone https://github.com/bluuudemon/nopCommerce.git
+cd nopCommerce
+git checkout cursor/feature-to-ship-demo-5425
+git fetch origin
+git fetch origin demo/golden-free-shipping-bar
+demo/prebuild.sh
+demo/compare.sh
+```
+
+`demo/compare.sh` on its own is enough after that fetch. `demo/prebuild.sh` does the image build first, so the talk does not wait on it. Baseline is http://127.0.0.1:8080. The golden bar is http://127.0.0.1:8081.
+
+`DEMO_OFFLINE_BASE=1` builds stand-in SDK images from a host .NET install at `/usr/share/dotnet`. Leave it unset on a Mac.
+
 ## Commands
 
 From the repo root:
@@ -129,6 +158,6 @@ Each port is its own compose project (`nopdemo-<port>`), so 8080 and 8081 do not
 
 **Need SQL Server instead.** The repo's `docker-compose.yml` is that path (image `mcr.microsoft.com/mssql/server:2019-latest`, sa password `nopCommerce_db_password`). It does not auto-install. These scripts use Postgres because nopCommerce supports it (`postgresql-docker-compose.yml`) and two instances stay small.
 
-**Building a branch image.** `demo/up.sh feature 8081 <git-ref>` checks out that commit and runs the repository `Dockerfile` (`mcr.microsoft.com/dotnet/sdk:10.0-alpine` and `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`). The first build of a commit is the slow one. The image is reused after that. If those base images cannot be pulled, the script builds local stand-ins (`demo/prepare-offline-bases.sh`) and runs the same Dockerfile against them. Test projects are omitted from that image copy; the storefront projects are not. After the build, the script copies `/app/refs` and the published `Nop.Web.deps.json` from `nopcommerceteam/nopcommerce:latest` into the new image. nopCommerce compiles views at runtime, and the repository publish does not include those reference assemblies. The published image has to be present locally for that copy.
+**Building a branch image.** `demo/up.sh feature 8081 <git-ref>` checks out that commit and runs `docker build -f Dockerfile` on that worktree. The base images are `mcr.microsoft.com/dotnet/sdk:10.0-alpine` and `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`. The script pulls them if they are not already local. When `timeout` or `gtimeout` is on `PATH`, the pull is capped at 60 seconds. macOS has neither, so the pull is a plain `docker pull`. A failed pull stops the script. It does not build stand-in base images unless `DEMO_OFFLINE_BASE=1`. The first build of a commit is the slow one. The image is reused after that. After the build, the script copies `/app/refs` and `Nop.Web.deps.json` from `nopcommerceteam/nopcommerce:latest` into the new image, pulling that image first if it is not local. nopCommerce compiles views at runtime, and the repository publish does not include those reference assemblies.
 
 **Image build failed.** `docker build` output is on the terminal. A cached image for the same commit is `nopdemo:sha-<12-char-sha>`. Delete it with `docker image rm nopdemo:sha-...` to force a rebuild.

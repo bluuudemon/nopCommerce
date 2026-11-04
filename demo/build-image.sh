@@ -30,8 +30,11 @@ demo_publish_razor_refs() {
   fi
   local published="nopcommerceteam/nopcommerce:latest"
   if ! docker image inspect "$published" >/dev/null 2>&1; then
-    echo "Published image ${published} is required so Razor can compile views." >&2
-    exit 1
+    echo "Pulling ${published} for Razor reference assemblies." >&2
+    if ! demo_run_bounded docker pull "$published" >&2; then
+      echo "docker pull failed for ${published}." >&2
+      return 1
+    fi
   fi
   echo "Copying reference assemblies into ${image} so views can compile." >&2
   local tmp src dst list path
@@ -82,14 +85,7 @@ fi
 
 SDK_IMAGE="mcr.microsoft.com/dotnet/sdk:10.0-alpine"
 ASPNET_IMAGE="mcr.microsoft.com/dotnet/aspnet:10.0-alpine"
-if ! docker image inspect "$SDK_IMAGE" >/dev/null 2>&1 \
-  || ! docker image inspect "$ASPNET_IMAGE" >/dev/null 2>&1; then
-  echo "Pulling .NET base images named by the repository Dockerfile." >&2
-  if ! timeout 60 docker pull "$SDK_IMAGE" >&2 || ! timeout 60 docker pull "$ASPNET_IMAGE" >&2; then
-    echo "Base image pull failed. Building local stand-ins so the repository Dockerfile can still run." >&2
-    "$DEMO_DIR/prepare-offline-bases.sh" >&2
-  fi
-fi
+demo_ensure_build_bases "$SDK_IMAGE" "$ASPNET_IMAGE"
 
 WORK_ROOT="$ROOT/.demo-worktrees"
 WORK="$WORK_ROOT/$SHORT"

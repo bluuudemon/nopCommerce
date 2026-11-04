@@ -86,6 +86,42 @@ demo_storefront_ready() {
   [[ "$body" == *"html-home-page"* || "$body" == *"home-page"* ]] && [[ "$body" != *'id="installation-form"'* ]]
 }
 
+# Run a command, waiting at most 60 seconds when timeout or gtimeout exists.
+# macOS has neither. A missing timeout must not look like a failed docker pull.
+# `|| return` keeps bash 3.2 with set -e from exiting the whole script.
+demo_run_bounded() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 60 "$@" || return 1
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout 60 "$@" || return 1
+  else
+    "$@" || return 1
+  fi
+}
+
+# The repository Dockerfile names two Microsoft base images. Pull them.
+# DEMO_OFFLINE_BASE=1 builds local stand-ins instead. A failed pull on a
+# presenter machine stops here. It does not switch to those stand-ins.
+demo_ensure_build_bases() {
+  local sdk="$1"
+  local aspnet="$2"
+  if docker image inspect "$sdk" >/dev/null 2>&1 \
+    && docker image inspect "$aspnet" >/dev/null 2>&1; then
+    return 0
+  fi
+  if [[ "${DEMO_OFFLINE_BASE:-}" == "1" ]]; then
+    echo "DEMO_OFFLINE_BASE=1: building local stand-ins for the Dockerfile base images." >&2
+    "$DEMO_DIR/prepare-offline-bases.sh" >&2 || return 1
+    return 0
+  fi
+  echo "Pulling .NET base images named by the repository Dockerfile." >&2
+  if ! demo_run_bounded docker pull "$sdk" >&2 || ! demo_run_bounded docker pull "$aspnet" >&2; then
+    echo "docker pull failed for the Dockerfile base images." >&2
+    echo "Leave DEMO_OFFLINE_BASE unset. Fix the pull, then run demo/prebuild.sh again." >&2
+    return 1
+  fi
+}
+
 # Print the commit for a rev, or return 1. Stderr is discarded so a missing
 # name cannot surface as "fatal: Needed a single revision". The `|| return`
 # matters on macOS bash 3.2: with `set -e`, a failing command inside a

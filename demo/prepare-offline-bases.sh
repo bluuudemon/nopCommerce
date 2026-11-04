@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Create local stand-ins for the two images named in the repository Dockerfile
-# when mcr.microsoft.com cannot be pulled. A normal machine never runs this:
-# build-image.sh only calls it after docker pull fails.
+# Create local stand-ins for the two images named in the repository Dockerfile.
+# build-image.sh runs this only when DEMO_OFFLINE_BASE=1. A presenter Mac
+# does not: it docker-pulls the real base images and docker-builds the ref.
 set -euo pipefail
 
 DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,6 +15,11 @@ if docker image inspect "$SDK_IMAGE" >/dev/null 2>&1 \
   && docker image inspect "$ASPNET_IMAGE" >/dev/null 2>&1; then
   echo "Offline base images are already present." >&2
   exit 0
+fi
+
+if [[ ! -d /usr/share/dotnet ]]; then
+  echo "DEMO_OFFLINE_BASE=1 needs a host .NET SDK at /usr/share/dotnet." >&2
+  exit 1
 fi
 
 echo "Preparing offline .NET base images for the repository Dockerfile." >&2
@@ -45,7 +50,12 @@ cp /tmp/dotnet-debs/libicu74.deb "$STAGE/libicu74.deb"
 echo "Copying the local .NET SDK into the base image context." >&2
 rm -rf "$STAGE/dotnet"
 mkdir -p "$STAGE/dotnet"
-cp -a /usr/share/dotnet/. "$STAGE/dotnet/"
+# BSD cp has no -a, and "dir/." fails when dir is missing. Copy the tree
+# from inside the SDK directory so the files land in $STAGE/dotnet.
+(
+  cd /usr/share/dotnet
+  cp -R . "$STAGE/dotnet/"
+)
 
 echo "Building offline base image." >&2
 docker build -t nopdemo-offline-base:local "$STAGE"
