@@ -61,7 +61,11 @@ else
 fi
 
 STATE="$(demo_write_state "$PORT" "$LABEL" "$IMAGE")"
-# Remember the ref so reset can rebuild only when asked. The image tag is enough.
+# demo.env exports DEMO_IMAGE into this shell, and Compose lets the shell
+# override --env-file. Export the image we actually chose or the feature
+# port keeps running the published baseline image.
+export DEMO_IMAGE="$IMAGE"
+export DEMO_PORT="$PORT"
 BASE="http://127.0.0.1:${PORT}"
 
 echo "Starting ${LABEL} on ${BASE}"
