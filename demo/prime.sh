@@ -7,8 +7,8 @@
 #   demo/prime.sh <port> feature
 #
 # Port 8081 defaults to feature. Every other port defaults to baseline.
-# The feature mode turns on free shipping over $75 and every progress-bar
-# toggle the golden branch reads. The baseline leaves those toggles off.
+# The golden branch shows the bar when shippingsettings.freeshippingoverxenabled
+# is true and the threshold is positive. There is no separate progress-bar setting.
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
@@ -44,28 +44,6 @@ else
   echo "Priming port ${PORT}: free shipping over \$75, progress bar off, carts empty."
 fi
 
-# Setting names the golden branch may introduce. Unknown names are inserted
-# so a default of "off" in code still comes up enabled on the feature port.
-# shippingsettings.freeshippingoverxenabled is the toggle that already exists.
-FEATURE_SETTINGS=(
-  shippingsettings.freeshippingprogressbarenabled
-  shippingsettings.showfreeshippingprogressbar
-  shippingsettings.displayfreeshippingprogressbar
-  shippingsettings.freeshippingprogressenabled
-)
-
-SETTINGS_SQL=""
-for name in "${FEATURE_SETTINGS[@]}"; do
-  SETTINGS_SQL+="
-INSERT INTO \"Setting\" (\"Name\", \"Value\", \"StoreId\")
-SELECT '${name}', '${ENABLED}', 0
-WHERE NOT EXISTS (
-  SELECT 1 FROM \"Setting\" WHERE \"Name\" = '${name}' AND \"StoreId\" = 0
-);
-UPDATE \"Setting\" SET \"Value\" = '${ENABLED}' WHERE \"Name\" = '${name}';
-"
-done
-
 demo_compose "$STATE" exec -T database \
   psql -U postgres -d nopcommerce -v ON_ERROR_STOP=1 -v enabled="$ENABLED" <<SQL
 UPDATE "Setting"
@@ -90,12 +68,14 @@ WHERE NOT EXISTS (
    WHERE "Name" = 'shippingsettings.freeshippingoverxenabled' AND "StoreId" = 0
 );
 
-UPDATE "Setting"
-   SET "Value" = :'enabled'
- WHERE "Name" LIKE '%progressbar%'
-    OR "Name" LIKE '%freeshippingprogress%';
-
-${SETTINGS_SQL}
+-- Drop names guessed before the golden branch landed. The bar does not read them.
+DELETE FROM "Setting"
+ WHERE "Name" IN (
+   'shippingsettings.freeshippingprogressbarenabled',
+   'shippingsettings.showfreeshippingprogressbar',
+   'shippingsettings.displayfreeshippingprogressbar',
+   'shippingsettings.freeshippingprogressenabled'
+ );
 
 DELETE FROM "ShoppingCartItem";
 SQL

@@ -76,7 +76,7 @@ Swap tabs. Do not wait on a live coding run. Tab 2 is the pre-built golden versi
 
 `DEMO_IMAGE=...` skips the build and runs the image you name. The feature image tag is `nopdemo:sha-<commit>` and is reused until that commit changes.
 
-Every `up.sh` ends in `prime.sh`. Both ports get free shipping over **$75** and **empty carts**. Port 8080 leaves the free-shipping toggle and any progress-bar setting **off**. Port 8081 turns those **on**, so the bar is already on the feature store. `demo/prime.sh 8080` and `demo/prime.sh 8081` do the same thing again.
+Every `up.sh` ends in `prime.sh`. Both ports get free shipping over **$75** and **empty carts**. The bar reads only `shippingsettings.freeshippingoverxenabled`. Port 8080 leaves that **off**. Port 8081 turns it **on**, so the bar is already on the feature store once a normal product is in the cart. `demo/prime.sh 8080` and `demo/prime.sh 8081` do the same thing again.
 
 The first run of a ref checks out a worktree under `.demo-worktrees/` and runs `docker build -f Dockerfile`. Later runs of the same commit reuse the image. `reset.sh` deletes the database volume, installs again, and primes.
 
