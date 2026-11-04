@@ -105,7 +105,7 @@ Do not demo the bar with Build your own computer or Apple MacBook Pro. Those sam
 | `demo/compare.sh` | Baseline on 8080, golden feature (or a ref you pass) on 8081. Leaves both running |
 | `demo/prebuild.sh` | Build a ref's image ahead of time. Default ref is `demo/golden-free-shipping-bar` |
 | `demo/build-image.sh` | `docker build -f Dockerfile` for one ref. Cached by commit |
-| `demo/prime.sh` | Threshold $75, free-shipping toggle off, empty carts |
+| `demo/prime.sh` | Threshold $75 and empty carts. Port 8081 turns free shipping over X on. Other ports leave it off |
 | `demo/reset.sh` | Delete volumes, install again, prime |
 | `demo/down.sh` | Stop containers, keep data |
 | `demo/docker-compose.yml` | Web + Postgres |
@@ -129,6 +129,6 @@ Each port is its own compose project (`nopdemo-<port>`), so 8080 and 8081 do not
 
 **Need SQL Server instead.** The repo's `docker-compose.yml` is that path (image `mcr.microsoft.com/mssql/server:2019-latest`, sa password `nopCommerce_db_password`). It does not auto-install. These scripts use Postgres because nopCommerce supports it (`postgresql-docker-compose.yml`) and two instances stay small.
 
-**Building a branch image.** `demo/up.sh feature 8081 <git-ref>` checks out that commit and runs the repository `Dockerfile` (`mcr.microsoft.com/dotnet/sdk:10.0-alpine` and `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`). The first build of a commit is the slow one. The image is reused after that. If those base images cannot be pulled, the script builds local stand-ins (`demo/prepare-offline-bases.sh`) and runs the same Dockerfile against them. Test projects are omitted from that image copy; the storefront projects are not.
+**Building a branch image.** `demo/up.sh feature 8081 <git-ref>` checks out that commit and runs the repository `Dockerfile` (`mcr.microsoft.com/dotnet/sdk:10.0-alpine` and `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`). The first build of a commit is the slow one. The image is reused after that. If those base images cannot be pulled, the script builds local stand-ins (`demo/prepare-offline-bases.sh`) and runs the same Dockerfile against them. Test projects are omitted from that image copy; the storefront projects are not. After the build, the script copies `/app/refs` and the published `Nop.Web.deps.json` from `nopcommerceteam/nopcommerce:latest` into the new image. nopCommerce compiles views at runtime, and the repository publish does not include those reference assemblies. The published image has to be present locally for that copy.
 
 **Image build failed.** `docker build` output is on the terminal. A cached image for the same commit is `nopdemo:sha-<12-char-sha>`. Delete it with `docker image rm nopdemo:sha-...` to force a rebuild.
