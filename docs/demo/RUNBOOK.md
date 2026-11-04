@@ -1,10 +1,8 @@
 # Demo storefront runbook
 
-Stand up the public nopCommerce storefront with sample products, a known admin login, and no install wizard. Use one port for the baseline and a second port when a feature image is ready.
+Stand up the public nopCommerce storefront with sample products, a known admin login, and no install wizard. Baseline uses the published image. A feature git ref is built with the repository `Dockerfile` and served on its own port.
 
-The web container is the published `nopcommerceteam/nopcommerce` image (the current Docker Hub `latest`, nopCommerce 5.00). It is the same DefaultClean storefront the feature shortlist is written against. `up.sh` does not compile a branch and does not need NuGet. When a feature branch has an image, point `DEMO_IMAGE` at it.
-
-The repo already ships `Dockerfile`, `docker-compose.yml` (SQL Server), `postgresql-docker-compose.yml`, and `mysql-docker-compose.yml`. Those files build from source and stop at the install wizard. This harness keeps the same shape (web + database) and finishes the wizard.
+The repo already ships `Dockerfile`, `docker-compose.yml` (SQL Server), `postgresql-docker-compose.yml`, and `mysql-docker-compose.yml`. Those files build from source and stop at the install wizard. This harness keeps the same shape (web + database), builds a ref when you pass one, and finishes the wizard.
 
 ## Prerequisites
 
@@ -33,21 +31,27 @@ Customer accounts from the sample catalog (not admins) use password `123456`, fo
 From the repo root:
 
 ```bash
-# Baseline storefront
+# Build the golden feature image before the talk. Reuses the image if that commit is already built.
+demo/prebuild.sh
+demo/prebuild.sh demo/golden-free-shipping-bar
+demo/prebuild.sh f2s/run-123
+
+# Two tabs, already running: baseline on 8080, golden feature on 8081
+demo/compare.sh
+
+# Same thing for a different ref
+demo/compare.sh f2s/run-123
+
+# One port at a time
 demo/up.sh baseline 8080
+demo/up.sh feature 8081 demo/golden-free-shipping-bar
 
-# Second instance for a side-by-side "after"
-# (same published image until you have a feature image)
-demo/up.sh feature 8081
+# Put one store back into the starting state without reinstalling
+demo/prime.sh 8080
+demo/prime.sh 8081
 
-# Feature image, once a build exists
-DEMO_IMAGE=nopdemo:my-feature demo/up.sh feature 8081
-
-# Fresh sample data, same image, same port
+# Fresh sample data, same image, same port, then prime again
 demo/reset.sh 8080
-
-# Fresh sample data for every instance this checkout started
-demo/reset.sh
 
 # Stop, keep the database volume
 demo/down.sh 8080
@@ -55,7 +59,26 @@ demo/down.sh 8080
 
 `demo/up.sh 8080` is the same as `demo/up.sh baseline 8080`.
 
-The first run pulls images if they are missing, waits for Postgres, posts the install form with sample data, and restarts the app. Later runs see an installed storefront and return immediately. `reset.sh` deletes the database volume and installs again, so the catalog is the same every time.
+`demo/compare.sh` with no arguments uses branch `demo/golden-free-shipping-bar` on port 8081 and the published image on port 8080. Pass another ref when the feature is a different branch. `demo/prebuild.sh [ref]` builds that image and stops. A later `compare.sh` or `up.sh` for the same commit only starts containers.
+
+Both servers stay up. Do not stop them between the two tabs. Each port has its own database, both seeded with the sample catalog and then primed the same way.
+
+## Two browser tabs
+
+Open these before the audience is looking, after `demo/prebuild.sh` and `demo/compare.sh`:
+
+| Tab | URL | What it is |
+| --- | --- | --- |
+| 1 | http://127.0.0.1:8080 | Baseline. Published storefront. No free-shipping bar. |
+| 2 | http://127.0.0.1:8081 | Feature. The golden branch, already built. The bar is in the code. The toggle is off until you turn it on. |
+
+Swap tabs. Do not wait on a live coding run. The second tab is the pre-built golden version. A parallel bot run can still be going; it is not what the audience is watching.
+
+`DEMO_IMAGE=...` skips the build and runs the image you name. The feature image tag is `nopdemo:sha-<commit>` and is reused until that commit changes.
+
+Every `up.sh` ends in `prime.sh`: free shipping over **$75**, the free-shipping toggle **off**, any progress-bar setting **off**, and **no carts**. Turning the toggle on in admin is the only step left for the hero demo.
+
+The first run of a ref checks out a worktree under `.demo-worktrees/` and runs `docker build -f Dockerfile`. Later runs of the same commit reuse the image. `reset.sh` deletes the database volume, installs again, and primes.
 
 When it is ready:
 
@@ -67,8 +90,8 @@ When it is ready:
 
 The hero feature is the free-shipping progress bar (`docs/demo/FEATURE_SHORTLIST.md`). It is not in this baseline.
 
-1. Baseline on port 8080, feature build on port 8081.
-2. On the feature admin, enable Free shipping over X and set 75.
+1. `demo/prebuild.sh` then `demo/compare.sh`, so tab 1 is port 8080 and tab 2 is port 8081. Both already have the threshold at $75 and the toggle off.
+2. On the feature admin, enable Free shipping over X. Leave the value at 75.
 3. Add Nike Floral Roshe Customized Running Shoes (price 40, not marked free shipping). The bar should be partial.
 4. Raise the quantity. The bar completes.
 5. Open the header cart. The same bar is in the mini-cart.
@@ -80,11 +103,15 @@ Do not demo the bar with Build your own computer or Apple MacBook Pro. Those sam
 
 | Path | Role |
 | --- | --- |
-| `demo/up.sh` | Create the instance, install sample data if needed |
-| `demo/reset.sh` | Delete volumes and install again |
+| `demo/up.sh` | Start one instance. Builds a git ref when you pass one |
+| `demo/compare.sh` | Baseline on 8080, golden feature (or a ref you pass) on 8081. Leaves both running |
+| `demo/prebuild.sh` | Build a ref's image ahead of time. Default ref is `demo/golden-free-shipping-bar` |
+| `demo/build-image.sh` | `docker build -f Dockerfile` for one ref. Cached by commit |
+| `demo/prime.sh` | Threshold $75, free-shipping toggle off, empty carts |
+| `demo/reset.sh` | Delete volumes, install again, prime |
 | `demo/down.sh` | Stop containers, keep data |
 | `demo/docker-compose.yml` | Web + Postgres |
-| `demo/demo.env` | Image name and demo passwords |
+| `demo/demo.env` | Published image name and demo passwords |
 | `demo/install_store.py` | Posts `/install` with the antiforgery cookie |
 | `demo/.state/<port>.env` | Created locally, not committed. Reset and down read it |
 
@@ -104,4 +131,6 @@ Each port is its own compose project (`nopdemo-<port>`), so 8080 and 8081 do not
 
 **Need SQL Server instead.** The repo's `docker-compose.yml` is that path (image `mcr.microsoft.com/mssql/server:2019-latest`, sa password `nopCommerce_db_password`). It does not auto-install. These scripts use Postgres because nopCommerce supports it (`postgresql-docker-compose.yml`) and two instances stay small.
 
-**Building a branch image.** The repo `Dockerfile` publishes `Nop.Web` with the .NET 10 SDK (`mcr.microsoft.com/dotnet/sdk:10.0-alpine`) and needs NuGet. That build is intentionally not part of `up.sh`. Produce the image in an environment that can restore packages, then `DEMO_IMAGE=... demo/up.sh feature 8081`.
+**Building a branch image.** `demo/up.sh feature 8081 <git-ref>` checks out that commit and runs the repository `Dockerfile` (`mcr.microsoft.com/dotnet/sdk:10.0-alpine` and `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`). The first build of a commit is the slow one. The image is reused after that. If those base images cannot be pulled, the script builds local stand-ins (`demo/prepare-offline-bases.sh`) and runs the same Dockerfile against them. Test projects are omitted from that image copy; the storefront projects are not.
+
+**Image build failed.** `docker build` output is on the terminal. A cached image for the same commit is `nopdemo:sha-<12-char-sha>`. Delete it with `docker image rm nopdemo:sha-...` to force a rebuild.

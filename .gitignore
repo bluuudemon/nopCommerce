@@ -210,5 +210,7 @@ src/Tests/Nop.Tests/Connections.resx
 
 # Local demo instances (ports, compose project names). Not the scripts.
 demo/.state/
+demo/.cache/
 demo/__pycache__/
 *.pyc
+.demo-worktrees/
