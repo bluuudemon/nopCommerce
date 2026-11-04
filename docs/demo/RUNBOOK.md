@@ -59,7 +59,7 @@ demo/down.sh 8080
 
 `demo/up.sh 8080` is the same as `demo/up.sh baseline 8080`.
 
-`demo/compare.sh` with no arguments uses branch `demo/golden-free-shipping-bar` on port 8081 and the published image on port 8080. Pass another ref when the feature is a different branch. `demo/prebuild.sh` fetches that branch from origin, including when the clone was made before the branch existed, builds it, and stops. A later `compare.sh` or `up.sh` for the same commit only starts containers.
+`demo/compare.sh` with no arguments uses branch `demo/golden-free-shipping-bar` on port 8081 and the published image on port 8080. Pass another ref when the feature is a different branch. `demo/prebuild.sh` fetches that branch from origin, including when the clone was made before the branch existed, builds it, and stops. macOS git records that fetch as `* branch <name> -> FETCH_HEAD` and does not create a local branch. The script uses that `FETCH_HEAD` commit, then `origin/<ref>`, then the name or a sha already in the clone. A later `compare.sh` or `up.sh` for the same commit only starts containers.
 
 Both servers stay up. Do not stop them between the two tabs. Each port has its own database, both seeded with the sample catalog and then primed the same way.
 

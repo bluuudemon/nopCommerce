@@ -5,24 +5,13 @@
 #   demo/build-image.sh <git-ref>
 set -euo pipefail
 
-DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$DEMO_DIR/.." && pwd)"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 REF="${1:?usage: demo/build-image.sh <git-ref>}"
 
 cd "$ROOT"
-# A clone made before this branch was pushed has no local ref. Fetch it
-# into the origin remote-tracking ref, then resolve that. A plain SHA or
-# HEAD still resolves locally when the fetch does not apply.
-echo "Fetching ${REF} from origin." >&2
-git fetch origin "refs/heads/${REF}:refs/remotes/origin/${REF}" >&2 || true
-if git rev-parse --verify --quiet "refs/remotes/origin/${REF}^{commit}" >/dev/null; then
-  SHA="$(git rev-parse "refs/remotes/origin/${REF}^{commit}")"
-elif git rev-parse --verify --quiet "${REF}^{commit}" >/dev/null; then
-  SHA="$(git rev-parse "${REF}^{commit}")"
-else
-  echo "Could not resolve ${REF}. It is not on origin and not in this clone." >&2
-  exit 1
-fi
+# compare.sh and prebuild.sh both come through here. The branch may not
+# exist locally; demo_resolve_ref reads FETCH_HEAD after the fetch.
+SHA="$(demo_resolve_ref "$REF")"
 SHORT="$(git rev-parse --short=12 "$SHA")"
 IMAGE="nopdemo:sha-${SHORT}"
 SAFE_REF="$(printf '%s' "$REF" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '-')"

@@ -85,3 +85,57 @@ demo_storefront_ready() {
   body="$(curl -fsS --max-time 20 -L "$url" 2>/dev/null || true)"
   [[ "$body" == *"html-home-page"* || "$body" == *"home-page"* ]] && [[ "$body" != *'id="installation-form"'* ]]
 }
+
+# Print the commit for a rev, or return 1. Stderr is discarded so a missing
+# name cannot surface as "fatal: Needed a single revision". The `|| return`
+# matters on macOS bash 3.2: with `set -e`, a failing command inside a
+# function exits the whole script even when the caller is an `if`.
+demo_print_commit() {
+  git rev-parse --verify --quiet "${1}^{commit}" 2>/dev/null || return 1
+}
+
+# Resolve a branch, tag, or sha to a commit.
+#
+# A clone made before the feature branch existed has no local ref for it.
+# `git fetch origin <branch>` still downloads the tip, and macOS git reports
+# "* branch <name> -> FETCH_HEAD" without creating <name>. Resolving <name>
+# then dies. Use the commit this fetch just stored, then origin/<ref>, then
+# the name or a sha that is already in the clone.
+demo_resolve_ref() {
+  local ref="$1"
+  local sha=""
+  local fetched_sha=""
+
+  echo "Fetching ${ref} from origin." >&2
+  if git fetch origin "$ref" >&2; then
+    sha="$(demo_print_commit FETCH_HEAD)" || sha=""
+    fetched_sha="$sha"
+  fi
+  # Some git versions only keep a one-off fetch in FETCH_HEAD. Asking for
+  # the remote-tracking ref explicitly still helps when that destination
+  # is how this git stores the branch.
+  if [[ -z "$fetched_sha" ]]; then
+    if git fetch origin "+refs/heads/${ref}:refs/remotes/origin/${ref}" >&2; then
+      sha="$(demo_print_commit "refs/remotes/origin/${ref}")" || sha=""
+      if [[ -z "$sha" ]]; then
+        sha="$(demo_print_commit FETCH_HEAD)" || sha=""
+      fi
+      fetched_sha="$sha"
+    fi
+  fi
+
+  if [[ -n "$fetched_sha" ]]; then
+    printf '%s\n' "$fetched_sha"
+    return 0
+  fi
+  if sha="$(demo_print_commit "$ref")"; then
+    printf '%s\n' "$sha"
+    return 0
+  fi
+  if sha="$(demo_print_commit "origin/${ref}")"; then
+    printf '%s\n' "$sha"
+    return 0
+  fi
+  echo "Could not resolve ${ref} to a commit. It is not on origin and not in this clone." >&2
+  return 1
+}

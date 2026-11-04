@@ -21,6 +21,8 @@ echo "Baseline on 8080 (published image)."
 "$DEMO_DIR/up.sh" baseline 8080
 
 echo "Feature on 8081 (${REF})."
+# up.sh builds this ref. Resolution accepts FETCH_HEAD when the branch
+# is not local yet (macOS git: "* branch <name> -> FETCH_HEAD").
 "$DEMO_DIR/up.sh" feature 8081 "$REF"
 
 cat <<EOF

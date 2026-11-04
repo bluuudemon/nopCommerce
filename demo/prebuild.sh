@@ -9,5 +9,6 @@ set -euo pipefail
 
 DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REF="${1:-demo/golden-free-shipping-bar}"
+# build-image.sh fetches REF and resolves FETCH_HEAD, origin/<ref>, or a sha.
 IMAGE="$("$DEMO_DIR/build-image.sh" "$REF")"
 echo "Prebuilt ${REF} as ${IMAGE}"
