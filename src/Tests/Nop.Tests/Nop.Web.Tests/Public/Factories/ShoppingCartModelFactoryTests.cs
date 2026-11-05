@@ -206,38 +206,50 @@ public class ShoppingCartModelFactoryTests : WebTest
             var (_, _, _, subtotal, _) = await orderTotalCalculationService.GetShoppingCartSubTotalAsync(cart, false);
             subtotal.Should().BeGreaterThan(0);
 
+            // The test host registers ISettings as transient and loads a new object on every resolve.
+            // The factory keeps the instance injected when it was constructed, so an in-memory edit of
+            // another ShippingSettings is invisible until it is saved and the factory is resolved again.
+            async Task<(FreeShippingProgressModel model, bool isFreeShipping)> ReadProgressAsync()
+            {
+                await settingService.SaveSettingAsync(shippingSettings);
+                var progress = await GetService<IShoppingCartModelFactory>().PrepareFreeShippingProgressModelAsync(cart);
+                var isFreeShipping = await GetService<IOrderTotalCalculationService>().IsFreeShippingAsync(cart);
+                return (progress, isFreeShipping);
+            }
+
             shippingSettings.FreeShippingOverXValue = subtotal + 10m;
-            var below = await _shoppingCartModelFactory.PrepareFreeShippingProgressModelAsync(cart);
+            var (below, belowIsFree) = await ReadProgressAsync();
             below.Show.Should().BeTrue();
             below.IsQualified.Should().BeFalse();
             below.RemainingPrimary.Should().Be(10m);
             below.Message.Should().Contain("free shipping");
             below.Caption.Should().NotBeNullOrEmpty();
-            (await orderTotalCalculationService.IsFreeShippingAsync(cart)).Should().BeFalse();
+            belowIsFree.Should().BeFalse();
 
             shippingSettings.FreeShippingOverXValue = subtotal;
-            var at = await _shoppingCartModelFactory.PrepareFreeShippingProgressModelAsync(cart);
+            var (at, atIsFree) = await ReadProgressAsync();
             at.Show.Should().BeTrue();
             at.IsQualified.Should().BeFalse();
             at.RemainingPrimary.Should().Be(0m);
             at.ProgressPercent.Should().Be(100m);
-            (await orderTotalCalculationService.IsFreeShippingAsync(cart)).Should().BeFalse();
+            atIsFree.Should().BeFalse();
 
             shippingSettings.FreeShippingOverXValue = subtotal - 0.01m;
-            var above = await _shoppingCartModelFactory.PrepareFreeShippingProgressModelAsync(cart);
+            var (above, aboveIsFree) = await ReadProgressAsync();
             above.Show.Should().BeTrue();
             above.IsQualified.Should().BeTrue();
             above.RemainingPrimary.Should().Be(0m);
             above.ProgressPercent.Should().Be(100m);
             above.Message.Should().Be("You've unlocked free shipping!");
-            (await orderTotalCalculationService.IsFreeShippingAsync(cart)).Should().BeTrue();
+            aboveIsFree.Should().BeTrue();
 
             shippingSettings.FreeShippingOverXEnabled = false;
-            var hidden = await _shoppingCartModelFactory.PrepareFreeShippingProgressModelAsync(cart);
+            var (hidden, _) = await ReadProgressAsync();
             hidden.Show.Should().BeFalse();
 
             shippingSettings.FreeShippingOverXEnabled = true;
-            var empty = await _shoppingCartModelFactory.PrepareFreeShippingProgressModelAsync(new List<ShoppingCartItem>());
+            await settingService.SaveSettingAsync(shippingSettings);
+            var empty = await GetService<IShoppingCartModelFactory>().PrepareFreeShippingProgressModelAsync(new List<ShoppingCartItem>());
             empty.Show.Should().BeFalse();
         }
         finally
