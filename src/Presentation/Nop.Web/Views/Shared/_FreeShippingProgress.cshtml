@@ -1,0 +1,27 @@
+@model FreeShippingProgressModel
+
+@if (Model.Visible)
+{
+    <div class="free-shipping-progress-live" aria-live="polite">
+        <div class="free-shipping-progress@(Model.Compact ? " free-shipping-progress--compact" : null)@(Model.Unlocked ? " free-shipping-progress--unlocked" : null)"
+             data-free-shipping-progress>
+            <div class="free-shipping-progress__header">
+                <span class="free-shipping-progress__icon@(Model.Unlocked ? " free-shipping-progress__icon--check" : " free-shipping-progress__icon--truck")" aria-hidden="true"></span>
+                <p class="free-shipping-progress__message">@Model.Message</p>
+            </div>
+            <div class="free-shipping-progress__track"
+                 role="progressbar"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-valuenow="@Model.ProgressPercent"
+                 aria-valuetext="@Model.AriaValueText"
+                 aria-label="@Model.Message">
+                <span class="free-shipping-progress__bar" style="width: @(Model.ProgressPercent)%"></span>
+            </div>
+            @if (Model.ShowCaption && !string.IsNullOrEmpty(Model.Caption))
+            {
+                <p class="free-shipping-progress__caption">@Model.Caption</p>
+            }
+        </div>
+    </div>
+}

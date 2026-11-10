@@ -89,6 +89,7 @@
                     </div>
                 }
                 <div class="totals">
+                    @await Component.InvokeAsync(typeof(FreeShippingProgressViewComponent), new { compact = false })
                     @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderSummaryTotals, additionalData = Model })
                     @await Component.InvokeAsync(typeof(OrderTotalsViewComponent), new { isEditable = Model.IsEditable })
                     @if (Model.IsEditable)
