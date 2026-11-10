@@ -1397,6 +1397,93 @@ public partial class ShoppingCartModelFactory : IShoppingCartModelFactory
     }
 
     /// <summary>
+    /// Prepare the free-shipping progress model from the existing free-shipping-over-X setting.
+    /// </summary>
+    /// <param name="cart">Shopping cart</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the free-shipping progress model
+    /// </returns>
+    public virtual async Task<FreeShippingProgressModel> PrepareFreeShippingProgressModelAsync(IList<ShoppingCartItem> cart)
+    {
+        ArgumentNullException.ThrowIfNull(cart);
+
+        var model = new FreeShippingProgressModel();
+        var hasItems = cart.Any();
+        if (!_shippingSettings.FreeShippingOverXEnabled || !hasItems || _shippingSettings.FreeShippingOverXValue <= 0)
+            return model;
+
+        var includingTax = _shippingSettings.FreeShippingOverXIncludingTax;
+        var (_, _, _, subTotalWithDiscount, _) = await _orderTotalCalculationService.GetShoppingCartSubTotalAsync(cart, includingTax);
+        var shippingAlreadyFree = await IsShippingAlreadyFreeAsync(cart);
+        var calculation = FreeShippingProgressCalculator.Calculate(true, _shippingSettings.FreeShippingOverXValue, subTotalWithDiscount, true, shippingAlreadyFree);
+
+        var currency = await _workContext.GetWorkingCurrencyAsync();
+        var languageId = (await _workContext.GetWorkingLanguageAsync()).Id;
+        var subtotal = await _currencyService.ConvertFromPrimaryStoreCurrencyAsync(subTotalWithDiscount, currency);
+        var threshold = await _currencyService.ConvertFromPrimaryStoreCurrencyAsync(_shippingSettings.FreeShippingOverXValue, currency);
+        var remaining = await _currencyService.ConvertFromPrimaryStoreCurrencyAsync(calculation.Remaining, currency);
+
+        model.Show = calculation.Show;
+        model.IsQualified = calculation.IsQualified;
+        model.SubtotalPrimary = subTotalWithDiscount;
+        model.ThresholdPrimary = _shippingSettings.FreeShippingOverXValue;
+        model.RemainingPrimary = calculation.Remaining;
+        model.SubtotalValue = subtotal;
+        model.ThresholdValue = threshold;
+        model.RemainingValue = remaining;
+        model.ProgressPercent = decimal.Round(calculation.ProgressRatio * 100m, 2, MidpointRounding.AwayFromZero);
+        model.ProgressValue = calculation.IsQualified
+            ? threshold
+            : Math.Clamp(subtotal, 0m, threshold);
+
+        var subtotalText = await FormatFreeShippingAmountAsync(subtotal, currency, languageId, includingTax);
+        var thresholdText = await FormatFreeShippingAmountAsync(threshold, currency, languageId, includingTax);
+        var remainingText = await FormatFreeShippingAmountAsync(remaining, currency, languageId, includingTax);
+
+        if (calculation.IsQualified)
+        {
+            model.Message = await _localizationService.GetResourceAsync("ShoppingCart.FreeShipping.Qualified");
+            model.Hint = await _localizationService.GetResourceAsync("ShoppingCart.FreeShipping.QualifiedHint");
+        }
+        else
+        {
+            model.Message = string.Format(await _localizationService.GetResourceAsync("ShoppingCart.FreeShipping.Remaining"), remainingText);
+        }
+
+        model.Caption = string.Format(await _localizationService.GetResourceAsync("ShoppingCart.FreeShipping.Progress"), subtotalText, thresholdText);
+        return model;
+    }
+
+    /// <summary>
+    /// Shipping is free for a reason other than the over-X threshold (customer role, or every item ships free).
+    /// </summary>
+    /// <param name="cart">Shopping cart</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    protected virtual async Task<bool> IsShippingAlreadyFreeAsync(IList<ShoppingCartItem> cart)
+    {
+        var customer = await _customerService.GetCustomerByIdAsync(cart.FirstOrDefault()?.CustomerId ?? 0);
+        if (customer != null && (await _customerService.GetCustomerRolesAsync(customer)).Any(role => role.FreeShipping))
+            return true;
+
+        foreach (var item in cart)
+        {
+            if (!await _shippingService.IsFreeShippingAsync(item))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Formats an amount in the shopper currency without a tax suffix.
+    /// </summary>
+    protected virtual async Task<string> FormatFreeShippingAmountAsync(decimal amount, Currency currency, int languageId, bool includingTax)
+    {
+        return await _priceFormatter.FormatPriceAsync(amount, false, currency, languageId, includingTax, false);
+    }
+
+    /// <summary>
     /// Prepare the estimate shipping result model
     /// </summary>
     /// <param name="cart">List of the shopping cart item</param>

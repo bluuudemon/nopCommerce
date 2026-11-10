@@ -104,6 +104,17 @@ public partial interface IShoppingCartModelFactory
     Task<WishlistEmailAFriendModel> PrepareWishlistEmailAFriendModelAsync(WishlistEmailAFriendModel model, bool excludeProperties, int? wishlistId = null);
 
     /// <summary>
+    /// Prepare the free-shipping progress model from the existing free-shipping-over-X setting.
+    /// Returns a hidden model when the setting is off, the threshold is not positive, or the cart is empty.
+    /// </summary>
+    /// <param name="cart">Shopping cart</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the free-shipping progress model
+    /// </returns>
+    Task<FreeShippingProgressModel> PrepareFreeShippingProgressModelAsync(IList<ShoppingCartItem> cart);
+
+    /// <summary>
     /// Prepare the cart item picture model
     /// </summary>
     /// <param name="sci">Shopping cart item</param>

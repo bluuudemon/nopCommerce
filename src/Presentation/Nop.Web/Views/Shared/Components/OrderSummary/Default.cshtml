@@ -49,6 +49,10 @@
                 </script>
             }
 
+            @if (Model.IsEditable)
+            {
+                @await Component.InvokeAsync(typeof(FreeShippingProgressViewComponent), new { variant = "card-mobile" })
+            }
             @await Html.PartialAsync("_ShoppingCartItems", Model)
 
             @if (Model.IsEditable && Model.Items.Count > 0 && Model.DisplayTaxShippingInfo)
@@ -87,6 +91,10 @@
                             @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderSummaryContentDeals, additionalData = Model })
                         </div>
                     </div>
+                }
+                @if (Model.IsEditable)
+                {
+                    @await Component.InvokeAsync(typeof(FreeShippingProgressViewComponent), new { variant = "card-desktop" })
                 }
                 <div class="totals">
                     @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderSummaryTotals, additionalData = Model })

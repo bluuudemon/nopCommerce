@@ -20677,6 +20677,18 @@
   <LocaleResource Name="ShoppingCart.FileUploaded">
     <Value>Your file successfully uploaded!</Value>
   </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShipping.Progress">
+    <Value>{0} of {1}</Value>
+  </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShipping.Qualified">
+    <Value>You've unlocked free shipping!</Value>
+  </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShipping.QualifiedHint">
+    <Value>Enjoy free shipping on your order.</Value>
+  </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShipping.Remaining">
+    <Value>Spend {0} more for free shipping</Value>
+  </LocaleResource>
   <LocaleResource Name="ShoppingCart.GiftCardCouponCode">
     <Value>Gift Cards</Value>
   </LocaleResource>

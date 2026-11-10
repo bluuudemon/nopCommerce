@@ -1,0 +1,41 @@
+# Web and Postgres share the default Docker bridge. A private compose
+# network is the usual pattern, but some hosts only forward container
+# traffic on docker0. `links` publishes the hostname "database" there.
+# `network_mode: bridge` is that default bridge.
+
+services:
+  web:
+    image: ${DEMO_IMAGE:-nopcommerceteam/nopcommerce:latest}
+    network_mode: bridge
+    ports:
+      - "${DEMO_PORT:-8080}:80"
+    environment:
+      ASPNETCORE_URLS: http://+:80
+      ASPNETCORE_HTTP_PORTS: "80"
+    depends_on:
+      database:
+        condition: service_healthy
+    links:
+      - database:database
+    restart: unless-stopped
+
+  database:
+    image: postgres:16
+    network_mode: bridge
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DEMO_SQL_PASSWORD:-nopCommerce_db_password}
+      # Leave the app database uncreated. The installer creates it and
+      # enables citext + pgcrypto. A precreated database skips that step.
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  dbdata:
