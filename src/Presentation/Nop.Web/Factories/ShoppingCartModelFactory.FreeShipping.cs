@@ -17,14 +17,22 @@ public partial class ShoppingCartModelFactory
         if (!_shippingSettings.FreeShippingOverXEnabled || cart == null || cart.Count == 0)
             return model;
 
-        if (await cart.AllAwaitAsync(async shoppingCartItem => await _shippingService.IsFreeShippingAsync(shoppingCartItem)))
+        // Lines that already ship free do not count toward the threshold. Shipping totals still use the full cart.
+        var qualifyingCart = new List<ShoppingCartItem>(cart.Count);
+        foreach (var shoppingCartItem in cart)
+        {
+            if (!await _shippingService.IsFreeShippingAsync(shoppingCartItem))
+                qualifyingCart.Add(shoppingCartItem);
+        }
+
+        if (qualifyingCart.Count == 0)
             return model;
 
         var includingTax = _shippingSettings.FreeShippingOverXIncludingTax;
-        var (_, _, _, subTotalWithDiscount, _) = await _orderTotalCalculationService.GetShoppingCartSubTotalAsync(cart, includingTax);
+        var (_, _, _, subTotalWithDiscount, _) = await _orderTotalCalculationService.GetShoppingCartSubTotalAsync(qualifyingCart, includingTax);
         var threshold = _shippingSettings.FreeShippingOverXValue;
 
-        var unlocked = await _orderTotalCalculationService.IsFreeShippingAsync(cart, subTotalWithDiscount);
+        var unlocked = await _orderTotalCalculationService.IsFreeShippingAsync(qualifyingCart, subTotalWithDiscount);
 
         var currentCurrency = await _workContext.GetWorkingCurrencyAsync();
         var languageId = (await _workContext.GetWorkingLanguageAsync()).Id;
