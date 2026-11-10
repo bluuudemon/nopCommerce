@@ -20614,6 +20614,15 @@
   <LocaleResource Name="ShoppingCart.ContinueShopping">
     <Value>Continue shopping</Value>
   </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShippingProgress.Caption">
+    <Value>{0} of {1}</Value>
+  </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShippingProgress.Reached">
+    <Value>You've got free shipping!</Value>
+  </LocaleResource>
+  <LocaleResource Name="ShoppingCart.FreeShippingProgress.Remaining">
+    <Value>Add {0} more for free shipping</Value>
+  </LocaleResource>
   <LocaleResource Name="ShoppingCart.CrossSells">
     <Value>Based on your selection, you may be interested in the following items</Value>
   </LocaleResource>

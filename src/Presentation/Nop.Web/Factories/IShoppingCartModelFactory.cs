@@ -115,4 +115,14 @@ public partial interface IShoppingCartModelFactory
     /// The task result contains the picture model
     /// </returns>
     Task<PictureModel> PrepareCartItemPictureModelAsync(ShoppingCartItem sci, int pictureSize, bool showDefaultPicture, string productName);
+
+    /// <summary>
+    /// Prepare the free-shipping progress model
+    /// </summary>
+    /// <param name="cart">Shopping cart</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the free-shipping progress model
+    /// </returns>
+    Task<FreeShippingProgressModel> PrepareFreeShippingProgressModelAsync(IList<ShoppingCartItem> cart);
 }
