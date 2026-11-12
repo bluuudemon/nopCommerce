@@ -1,0 +1,8 @@
+# QA-style: feature publish tree on published base (full /app from branch image).
+FROM nopcommerceteam/nopcommerce:latest AS base
+FROM nopdemo:sha-e3ba85b324bb AS feature_src
+FROM base
+USER root
+COPY --from=feature_src /app/ /app/
+RUN chown -R app:app /app
+USER app

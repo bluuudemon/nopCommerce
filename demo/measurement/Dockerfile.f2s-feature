@@ -1,15 +1,20 @@
-# Feature overlay: replace only Nop.Web + views/CSS/strings; keep published binaries for shipping/plugins.
+# Feature overlay: Nop.Web + Nop.Services (+ views/CSS/strings) on published image.
+# Keeps Nop.Core, Nop.Data, Nop.Web.Framework, plugins, and deps from upstream so shipping loads.
 FROM nopcommerceteam/nopcommerce:latest AS base
 FROM nopdemo:sha-e3ba85b324bb AS feature_src
 FROM scratch AS bundle
+COPY --from=feature_src /app/Nop.Services.dll /bundle/
 COPY --from=feature_src /app/Nop.Web.dll /bundle/
+COPY --from=feature_src /app/Nop.Web.deps.json /bundle/
+COPY --from=feature_src /app/Nop.Web.runtimeconfig.json /bundle/
 COPY --from=feature_src /app/Views /bundle/Views
 COPY --from=feature_src /app/Themes/DefaultClean/Content/css/styles.css /bundle/styles.css
 COPY --from=feature_src /app/Themes/DefaultClean/Content/css/styles.rtl.css /bundle/styles.rtl.css
 COPY --from=feature_src /app/App_Data/Localization/defaultResources.nopres.xml /bundle/defaultResources.nopres.xml
 FROM base
 USER root
-COPY --from=bundle /bundle/Nop.Web.dll /app/
+COPY --from=bundle /bundle/Nop.Services.dll /bundle/Nop.Web.dll /app/
+COPY --from=bundle /bundle/Nop.Web.deps.json /bundle/Nop.Web.runtimeconfig.json /app/
 COPY --from=bundle /bundle/Views /app/Views
 COPY --from=bundle /bundle/styles.css /app/Themes/DefaultClean/Content/css/styles.css
 COPY --from=bundle /bundle/styles.rtl.css /app/Themes/DefaultClean/Content/css/styles.rtl.css

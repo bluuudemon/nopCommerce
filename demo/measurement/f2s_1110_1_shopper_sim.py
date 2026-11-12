@@ -119,9 +119,11 @@ def add_product(page, path: str, qty: int = 1, needs_attrs: bool = False) -> Non
             if sel.locator("option").count() > 1:
                 sel.select_option(index=1)
     if qty > 1:
-        qty_input = page.locator("#product_enteredQuantity")
+        qty_input = page.locator(
+            "#product_enteredQuantity, input.qty-input, input[name*='EnteredQuantity']"
+        )
         if qty_input.count():
-            qty_input.fill(str(qty))
+            qty_input.first.fill(str(qty))
     page.locator(".add-to-cart-button").first.click(timeout=15000)
     page.wait_for_timeout(1200)
 
@@ -188,9 +190,12 @@ def guest_checkout(page, session_id: int) -> tuple[int | None, float | None]:
     if state.count() and state.locator("option").count() > 1:
         state.select_option(index=1)
 
-    bill_next = page.locator("#billingaddress-next-button")
+    bill_next = page.locator(
+        "#billingaddress-next-button, .new-address-next-step-button, "
+        ".billing-address-next-step-button"
+    )
     if bill_next.count():
-        bill_next.click()
+        bill_next.first.click()
     page.wait_for_timeout(2500)
 
     for _ in range(10):
@@ -386,6 +391,7 @@ def main() -> int:
     if args.port:
         ids = [s.order_id for s in logs if s.order_id]
         if ids:
+            import shlex
             import subprocess
 
             demo_dir = Path(__file__).resolve().parents[1]
@@ -419,8 +425,10 @@ def main() -> int:
                 sql,
             ]
             try:
+                # psql -c SQL must stay one shell word; shlex.join leaves IN (...) unquoted.
+                shell_cmd = shlex.join(cmd[:-1] + [cmd[-1]])
                 raw = subprocess.check_output(
-                    ["sg", "docker", "-c", " ".join(cmd)],
+                    ["sg", "docker", "-c", shell_cmd],
                     text=True,
                 )
                 by_id = {}
